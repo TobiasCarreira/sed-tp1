@@ -7,19 +7,18 @@
 #include <iostream>
 using namespace std;
 
-vector<const Port*> Market::inputPorts(int quantity) {
-    vector<const Port*> ports(quantity);
-    for (int i = 0; i < quantity; i++) {
-        ports[i] = &addInputPort("in" + to_string(i));
-        cout << "PUERTO: " << "in" + to_string(i) << endl;
+vector<const Port*> Market::inputPorts(int productQuantity) {
+    vector<const Port*> ports(productQuantity);
+    for (int i = 0; i < productQuantity; i++) {
+        ports[i] = &addInputPort("demand_p" + to_string(i));
     }
     return ports;
 }
 
-vector<Port*> Market::outputPorts(int quantity) {
-    vector<Port*> ports(quantity);
-    for (int i = 0; i < quantity; i++) {
-        ports[i] = &addInputPort("out" + to_string(i));
+vector<Port*> Market::outputPorts(int productQuantity) {
+    vector<Port*> ports(productQuantity);
+    for (int i = 0; i < productQuantity; i++) {
+        ports[i] = &addInputPort("supply_p" + to_string(i));
     }
     return ports;
 }
@@ -29,10 +28,11 @@ vector<Port*> Market::outputPorts(int quantity) {
 ********************************************************************/
 Market::Market( const string &name )
 	: Atomic( name ),
-      portsQuantity(str2Int( ParallelMainSimulator::Instance().getParameter( description(), "quantity" ) )),
+      productQuantity(str2Int( ParallelMainSimulator::Instance().getParameter( description(), "productQuantity" ) )),
       value(0),
-	  in(inputPorts(portsQuantity)),
-	  out(outputPorts(portsQuantity)) {
+	  productsIn(inputPorts(productQuantity)),
+	  productsOut(outputPorts(productQuantity)),
+	  productDemands(productQuantity) {
 	// add initialization code here. (reading parameters, initializing private vars, etc)
 	// Code templates for reading parameters:
 	// read string parameter:
@@ -66,8 +66,8 @@ Model &Market::initFunction() {
 ********************************************************************/
 Model &Market::externalFunction(const ExternalMessage &msg) {
     this->value = Real::from_value(msg.value());
-    for (int i = 0; i < this->portsQuantity; i++) {
-        if (msg.port() == *this->in[i]) this->lastInputPort = i;
+    for (int i = 0; i < this->productQuantity; i++) {
+        if (msg.port() == *this->productsIn[i]) this->lastInputPort = i;
     }
     this->holdIn(AtomicState::active, VTime::Zero);
     return *this;
@@ -89,7 +89,7 @@ Model &Market::internalFunction( const InternalMessage & ) {
 * Output values can be send through output ports
 ********************************************************************/
 Model &Market::outputFunction( const CollectMessage &msg ) {
-    sendOutput(msg.time(), *this->out[this->lastInputPort], this->value);
+    sendOutput(msg.time(), *this->productsOut[this->lastInputPort], this->value);
 	return *this;
 }
 

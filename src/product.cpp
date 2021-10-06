@@ -3,6 +3,7 @@
 #include "message.h"       // class InternalMessage 
 #include "parsimu.h"      // class Simulator
 #include "strutil.h"       // str2Value( ... )
+#include "utils.h"
 
 using namespace std;
 
@@ -30,8 +31,8 @@ Product::Product( const string &name )
 	//			string parameter( ParallelMainSimulator::Instance().getParameter( description(), dist->getVar( i ) ) ) ;
 	//			dist->setVar( i, str2Value( parameter ) ) ;
 	//		}
-    this->lastYearDemand = 1000;
-    this->growthRate = 1.05;
+    this->lastYearDemand = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "lastYearDemand" ) );
+    this->growthRate = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "growthRate" ) ) ;
 }
 
 /*******************************************************************
@@ -50,7 +51,7 @@ Model &Product::initFunction() {
 Model &Product::externalFunction(const ExternalMessage &msg) {
     if(msg.port() == this->supply) {
         this->lastYearDemand = Real::from_value(msg.value()) * this->growthRate;
-        holdIn(AtomicState::active, VTime(1)) ;
+        holdIn(AtomicState::active, CYCLE_TIME) ;
     }
 
     return *this;
@@ -62,7 +63,7 @@ Model &Product::externalFunction(const ExternalMessage &msg) {
 * The new state and TA should be set.
 ********************************************************************/
 Model &Product::internalFunction( const InternalMessage & ) {
-	holdIn(AtomicState::active, VTime(1)) ;
+	holdIn(AtomicState::active, CYCLE_TIME) ;
 	return *this;
 }
 

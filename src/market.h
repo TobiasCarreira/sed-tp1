@@ -27,15 +27,16 @@ protected:
 	Model &outputFunction( const CollectMessage & );
 
 private:
-    const int portsQuantity;
+    const int productQuantity;
+	vector<Real> productDemands;
     Real value;
     int lastInputPort;
-	vector<const Port*> in;
-	vector<Port*> out;
+	vector<const Port*> productsIn;
+	vector<Port*> productsOut;
 
-    vector<const Port*> inputPorts(int quantity);
-    vector<Port*> outputPorts(int quantity);
-			
+    vector<const Port*> inputPorts(int productQuantity);
+    vector<Port*> outputPorts(int productQuantity);
+
 };	// class ConstGenerator
 
 

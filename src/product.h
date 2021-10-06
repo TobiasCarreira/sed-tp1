@@ -29,8 +29,8 @@ private:
 	const Port &supply;
 	Port &demand;
 	Real lastYearDemand;
-    double growthRate;
-			
+    Real growthRate;
+
 };	// class ConstGenerator
 
 
