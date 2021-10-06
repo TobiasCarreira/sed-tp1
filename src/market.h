@@ -30,7 +30,7 @@ private:
     const int productQuantity;
 	vector<Real> productDemands;
     Real value;
-    int lastInputPort;
+	int demands = 0;
 	vector<const Port*> productsIn;
 	vector<Port*> productsOut;
 

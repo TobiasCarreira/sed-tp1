@@ -30,7 +30,10 @@ Market::Market( const string &name )
 	: Atomic( name ),
       productQuantity(str2Int( ParallelMainSimulator::Instance().getParameter( description(), "productQuantity" ) )),
       value(0),
+	  // TODO: productsIn deberia ser un dict con nombre puerto -> puerto
 	  productsIn(inputPorts(productQuantity)),
+
+	  // TODO: productsOut deberia ser un dict con nombre puerto -> puerto
 	  productsOut(outputPorts(productQuantity)),
 	  productDemands(productQuantity) {
 	// add initialization code here. (reading parameters, initializing private vars, etc)
@@ -59,17 +62,30 @@ Model &Market::initFunction() {
 	return *this ;
 }
 
+void calculoOfTheShit() {}
+
 /*******************************************************************
 * Function Name: externalFunction
 * Description: This method executes when an external event is received.
 * Remember you can use the msg object (mgs.port(), msg.value()) and you should set the next TA (you might use the holdIn method).
 ********************************************************************/
 Model &Market::externalFunction(const ExternalMessage &msg) {
-    this->value = Real::from_value(msg.value());
+    auto demandedQuantity = Real::from_value(msg.value());
+	if (this->lastChange() < msg.time()) {
+		cout << "nuevo pedido" << endl;
+	}
     for (int i = 0; i < this->productQuantity; i++) {
-        if (msg.port() == *this->productsIn[i]) this->lastInputPort = i;
+        if (msg.port() == *this->productsIn[i]) {
+			this->productDemands[i] = demandedQuantity;
+		}
     }
-    this->holdIn(AtomicState::active, VTime::Zero);
+	this->demands += 1;
+	if (this->demands == this->productQuantity) {
+		calculoOfTheShit();
+    	this->holdIn(AtomicState::active, VTime::Zero);
+	} else {
+		this->passivate();
+	}
     return *this;
 }
 
@@ -79,6 +95,7 @@ Model &Market::externalFunction(const ExternalMessage &msg) {
 * The new state and TA should be set.
 ********************************************************************/
 Model &Market::internalFunction( const InternalMessage & ) {
+	this->demands = 0;
 	this->passivate();
 	return *this;
 }
@@ -89,7 +106,9 @@ Model &Market::internalFunction( const InternalMessage & ) {
 * Output values can be send through output ports
 ********************************************************************/
 Model &Market::outputFunction( const CollectMessage &msg ) {
-    sendOutput(msg.time(), *this->productsOut[this->lastInputPort], this->value);
+	for (int i = 0; i < this->productQuantity; i++) {
+    	sendOutput(msg.time(), *this->productsOut[i], this->productDemands[i]);
+    }
 	return *this;
 }
 
