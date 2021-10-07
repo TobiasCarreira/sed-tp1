@@ -31,7 +31,7 @@ Product::Product( const string &name )
 	//			string parameter( ParallelMainSimulator::Instance().getParameter( description(), dist->getVar( i ) ) ) ;
 	//			dist->setVar( i, str2Value( parameter ) ) ;
 	//		}
-    this->lastYearDemand = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "lastYearDemand" ) );
+    this->initialVolume = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "initialVolume" ) );
     this->growthRate = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "growthRate" ) ) ;
 }
 
@@ -50,7 +50,7 @@ Model &Product::initFunction() {
 ********************************************************************/
 Model &Product::externalFunction(const ExternalMessage &msg) {
     if(msg.port() == this->supply) {
-        this->lastYearDemand = Real::from_value(msg.value()) * this->growthRate;
+        this->initialVolume = Real::from_value(msg.value()) * this->growthRate;
         holdIn(AtomicState::active, CYCLE_TIME) ;
     }
 
@@ -73,7 +73,7 @@ Model &Product::internalFunction( const InternalMessage & ) {
 * Output values can be send through output ports
 ********************************************************************/
 Model &Product::outputFunction( const CollectMessage &msg ) {
-	sendOutput(msg.time(), this->demand, this->lastYearDemand);
+	sendOutput(msg.time(), this->demand, this->initialVolume);
 	return *this;
 }
 
