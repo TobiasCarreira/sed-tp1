@@ -9,8 +9,8 @@ link : supply@country out
 
 [country]
 productQuantity : 5
-initialExports_0 : 1800
-initialExports_1 : 3100
-initialExports_2 : 000
-initialExports_3 : 000
-initialExports_4 : 8000
+initialExports_p0 : 1800
+initialExports_p1 : 3100
+initialExports_p2 : 000
+initialExports_p3 : 000
+initialExports_p4 : 8000

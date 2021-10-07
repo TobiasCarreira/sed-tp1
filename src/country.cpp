@@ -37,7 +37,7 @@ Country::Country( const string &name )
     int productQuantity = str2Int( simulator.getParameter( description(), "productQuantity" ) );
     vector<Real> initialExports(productQuantity);
     for (int i = 0; i < productQuantity; i++) {
-        initialExports[i] = str2Real( simulator.getParameter( description(), "initialExports_" + to_string(i) ) );
+        initialExports[i] = str2Real( simulator.getParameter( description(), "initialExports_p" + to_string(i) ) );
     }
     this->lastYearExports = Tuple<Real>(&initialExports);
 }

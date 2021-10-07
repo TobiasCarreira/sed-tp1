@@ -10,7 +10,7 @@
 #include <ctime>
 using namespace std;
 
-vector<const Port*> Market::inputPorts(int productQuantity) {
+vector<const Port*> Market::productDemandPorts(int productQuantity) {
     vector<const Port*> ports(productQuantity);
     for (int i = 0; i < productQuantity; i++) {
         ports[i] = &addInputPort("demand_p" + to_string(i));
@@ -18,10 +18,26 @@ vector<const Port*> Market::inputPorts(int productQuantity) {
     return ports;
 }
 
-vector<Port*> Market::outputPorts(int productQuantity) {
+vector<Port*> Market::productSupplyPorts(int productQuantity) {
     vector<Port*> ports(productQuantity);
     for (int i = 0; i < productQuantity; i++) {
         ports[i] = &addInputPort("supply_p" + to_string(i));
+    }
+    return ports;
+}
+
+vector<Port*> Market::countryDemandPorts(int countryQuantity) {
+    vector<Port*> ports(countryQuantity);
+    for (int i = 0; i < countryQuantity; i++) {
+        ports[i] = &addInputPort("demand_c" + to_string(i));
+    }
+    return ports;
+}
+
+vector<const Port*> Market::countrySupplyPorts(int countryQuantity) {
+    vector<const Port*> ports(countryQuantity);
+    for (int i = 0; i < countryQuantity; i++) {
+        ports[i] = &addInputPort("supply_c" + to_string(i));
     }
     return ports;
 }
@@ -32,11 +48,18 @@ vector<Port*> Market::outputPorts(int productQuantity) {
 Market::Market( const string &name )
 	: Atomic( name ),
       productQuantity(str2Int( ParallelMainSimulator::Instance().getParameter( description(), "productQuantity" ) )),
+	  countryQuantity(str2Int( ParallelMainSimulator::Instance().getParameter( description(), "countryQuantity" ) )),
 	  // TODO: productsIn deberia ser un dict con nombre puerto -> puerto
-	  productsIn(inputPorts(productQuantity)),
+	  productsIn(productDemandPorts(productQuantity)),
 
 	  // TODO: productsOut deberia ser un dict con nombre puerto -> puerto
-	  productsOut(outputPorts(productQuantity)),
+	  productsOut(productSupplyPorts(productQuantity)),
+
+	  // TODO: countriesIn deberia ser un dict con nombre puerto -> puerto
+	  countriesIn(countrySupplyPorts(countryQuantity)),
+
+	  // TODO: countriesOut deberia ser un dict con nombre puerto -> puerto
+	  countriesOut(countryDemandPorts(countryQuantity)),
 	  productDemands(productQuantity),
 	  exports(countryQuantity),
 	  permutationIndeces(countryQuantity) {
@@ -144,6 +167,14 @@ void Market::determineDemandsForCountries(){
 	random_shuffle(this->permutationIndeces.begin(), this->permutationIndeces.end());
 
 	// asignar las demandas a los paises con el criterio del documento
+	this->demandedToCountries = vector<vector<Real>>(this->countryQuantity);
+	Real ratio = 1.0 / this->countryQuantity;
+	for (int c = 0; c < this->countryQuantity; c++) {
+		this->demandedToCountries[c] = vector<Real>(this->productQuantity);
+		for (int p = 0; p < this->productQuantity; p++) {
+			this->demandedToCountries[c][p] = ratio * this->productDemands[p];
+		}
+	}
 }
 
 void Market::updateDemandsAfterCountry(const ExternalMessage &msg) {
@@ -181,7 +212,8 @@ Model &Market::internalFunction( const InternalMessage & ) {
 Model &Market::outputFunction( const CollectMessage &msg ) {
 	if (this->demands == this->productQuantity && this->demanded < this->productQuantity) {
 		int country = this->permutationIndeces[this->demanded];
-		sendOutput(msg.time(), *this->countriesOut[country], this->productDemands[country]);
+		this->countriesOut[country];
+		sendOutput(msg.time(), *this->countriesOut[country], Tuple<Real>(&this->demandedToCountries[country]));
 
 	} else if (this->demands == this->productQuantity && this->demanded == this->productQuantity) {
 		for (int i = 0; i < this->productQuantity; i++) {

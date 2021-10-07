@@ -28,28 +28,32 @@ protected:
 
 private:
     const int productQuantity;
-	const int countryQuantity = 1;
-	vector<Real> productDemands;
+	const int countryQuantity;
 
-	vector<vector<Real>> exports;
+	const vector<const Port*> productsIn;
+	const vector<Port*> productsOut;
 
-	vector<const Port*> productsIn;
-	vector<Port*> productsOut;
-
-	vector<const Port*> countriesIn;
-	vector<Port*> countriesOut;
+	const vector<const Port*> countriesIn;
+	const vector<Port*> countriesOut;
 
 	int demands = 0;
 	int demanded = 0;
 
+	vector<Real> productDemands;
 	vector<vector<Real>> demandedToCountries;
+
+	vector<vector<Real>> exports;
+
 	vector<int> permutationIndeces;
 
-    vector<const Port*> inputPorts(int productQuantity);
-    vector<Port*> outputPorts(int productQuantity);
+    vector<const Port*> productDemandPorts(int productQuantity);
+    vector<Port*> productSupplyPorts(int productQuantity);
 
+	vector<Port*> countryDemandPorts(int countryQuantity);
+	vector<const Port*> countrySupplyPorts(int countryQuantity);
 
 	vector<vector<Real>> *getRCAMatrix();
+
 	void determineDemandsForCountries();
 	void updateEffectiveExports();
 	void updateDemandsAfterCountry(const ExternalMessage &msg);
