@@ -20,11 +20,11 @@ productQuantity : 2
 countryQuantity : 1
 
 [p0]
-lastYearDemand : 1000
+initialVolume : 1000
 growthRate : 1
 
 [p1]
-lastYearDemand : 1000
+initialVolume : 1000
 growthRate : 1
 
 [country]

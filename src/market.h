@@ -37,7 +37,7 @@ private:
 	const vector<Port*> countriesOut;
 
 	int demands = 0;
-	int demanded = 0;
+	int demandedToCountriesCount = 0;
 
 	vector<Real> productDemands;
 	vector<vector<Real>> demandedToCountries;

@@ -21,15 +21,7 @@ vector<const Port*> Market::productDemandPorts(int productQuantity) {
 vector<Port*> Market::productSupplyPorts(int productQuantity) {
     vector<Port*> ports(productQuantity);
     for (int i = 0; i < productQuantity; i++) {
-        ports[i] = &addInputPort("supply_p" + to_string(i));
-    }
-    return ports;
-}
-
-vector<Port*> Market::countryDemandPorts(int countryQuantity) {
-    vector<Port*> ports(countryQuantity);
-    for (int i = 0; i < countryQuantity; i++) {
-        ports[i] = &addInputPort("demand_c" + to_string(i));
+        ports[i] = &addOutputPort("supply_p" + to_string(i));
     }
     return ports;
 }
@@ -41,6 +33,15 @@ vector<const Port*> Market::countrySupplyPorts(int countryQuantity) {
     }
     return ports;
 }
+
+vector<Port*> Market::countryDemandPorts(int countryQuantity) {
+    vector<Port*> ports(countryQuantity);
+    for (int i = 0; i < countryQuantity; i++) {
+        ports[i] = &addOutputPort("demand_c" + to_string(i));
+    }
+    return ports;
+}
+
 /*******************************************************************
 * Function Name: Market
 * Description: constructor
@@ -134,11 +135,11 @@ void calculoOfTheShit() {}
 * Remember you can use the msg object (mgs.port(), msg.value()) and you should set the next TA (you might use the holdIn method).
 ********************************************************************/
 Model &Market::externalFunction(const ExternalMessage &msg) {
-	if (msg.port().name().rfind("supply", 0) == 0) {
+	if (msg.port().name().rfind("supply_c", 0) == 0) {
 		// procesar lo que vino del pais
 		// podriamos mandar directamente la tupla
 		this->updateDemandsAfterCountry(msg);
-		if (this->demanded == this->productQuantity) {
+		if (this->demandedToCountriesCount == this->countryQuantity) {
 			// termino de asignar los recursos
 			this->updateEffectiveExports();
 		}
@@ -178,12 +179,15 @@ void Market::determineDemandsForCountries(){
 }
 
 void Market::updateDemandsAfterCountry(const ExternalMessage &msg) {
+	cout << "HERE " << endl;
 	// calcula la diferencia entre lo que se le pidio al pais y lo que va a producir
 	// asigna proporcionalmente esa diferenica a los paises que lo tuvieron asignados
 	// setea en demandedToCountries el valor a producir
 }
 
 void Market::updateEffectiveExports() {
+	cout << "FINISHED" << endl;
+
 	// copia de demandedToCountries a exports
 	// calcula los nuevos parametros del ProductSpace
 }
@@ -194,10 +198,10 @@ void Market::updateEffectiveExports() {
 * The new state and TA should be set.
 ********************************************************************/
 Model &Market::internalFunction( const InternalMessage & ) {
-	if (this->demands == this->productQuantity && this->demanded < this->productQuantity) {
-		this->demanded++;
-	} else if (this->demands == this->productQuantity && this->demanded == this->productQuantity) {
-		this->demanded = 0;
+	if (this->demands == this->productQuantity && this->demandedToCountriesCount < this->countryQuantity) {
+		this->demandedToCountriesCount++;
+	} else if (this->demands == this->productQuantity && this->demandedToCountriesCount == this->countryQuantity) {
+		this->demandedToCountriesCount = 0;
 		this->demands = 0;
 	}
 	this->passivate();
@@ -210,12 +214,11 @@ Model &Market::internalFunction( const InternalMessage & ) {
 * Output values can be send through output ports
 ********************************************************************/
 Model &Market::outputFunction( const CollectMessage &msg ) {
-	if (this->demands == this->productQuantity && this->demanded < this->productQuantity) {
-		int country = this->permutationIndeces[this->demanded];
-		this->countriesOut[country];
+	if (this->demands == this->productQuantity && this->demandedToCountriesCount < this->countryQuantity) {
+		int country = this->permutationIndeces[this->demandedToCountriesCount];
 		sendOutput(msg.time(), *this->countriesOut[country], Tuple<Real>(&this->demandedToCountries[country]));
 
-	} else if (this->demands == this->productQuantity && this->demanded == this->productQuantity) {
+	} else if (this->demands == this->productQuantity && this->demandedToCountriesCount == this->countryQuantity) {
 		for (int i = 0; i < this->productQuantity; i++) {
     		sendOutput(msg.time(), *this->productsOut[i], this->productDemands[i]);
     	}

@@ -46,7 +46,7 @@ Country::Country( const string &name )
 * Function Name: initFunction
 ********************************************************************/
 Model &Country::initFunction() {
-	holdIn(AtomicState::active, VTime::Zero);
+	this->passivate();
 	return *this ;
 }
 
