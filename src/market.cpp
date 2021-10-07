@@ -5,6 +5,9 @@
 #include "strutil.h"       // str2Value( ... )
 #include <string>
 #include <iostream>
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
 using namespace std;
 
 vector<const Port*> Market::inputPorts(int productQuantity) {
@@ -29,13 +32,14 @@ vector<Port*> Market::outputPorts(int productQuantity) {
 Market::Market( const string &name )
 	: Atomic( name ),
       productQuantity(str2Int( ParallelMainSimulator::Instance().getParameter( description(), "productQuantity" ) )),
-      value(0),
 	  // TODO: productsIn deberia ser un dict con nombre puerto -> puerto
 	  productsIn(inputPorts(productQuantity)),
 
 	  // TODO: productsOut deberia ser un dict con nombre puerto -> puerto
 	  productsOut(outputPorts(productQuantity)),
-	  productDemands(productQuantity) {
+	  productDemands(productQuantity),
+	  exports(countryQuantity),
+	  permutationIndeces(countryQuantity) {
 	// add initialization code here. (reading parameters, initializing private vars, etc)
 	// Code templates for reading parameters:
 	// read string parameter:
@@ -52,7 +56,44 @@ Market::Market( const string &name )
 	//			string parameter( ParallelMainSimulator::Instance().getParameter( description(), dist->getVar( i ) ) ) ;
 	//			dist->setVar( i, str2Value( parameter ) ) ;
 	//		}
+	srand(time(0));
+
+	for (int i = 0; i < this->countryQuantity; i++) {
+		// TODO: sacar estos datos de la "realidad"
+		this->exports[i] = vector<Real>(this->productQuantity);
+	}
+
+	for (int c = 0; c < this->countryQuantity; c++) permutationIndeces[c] = c;
 }
+
+vector<vector<Real>>* Market::getRCAMatrix() {
+	vector<Real> exportsCountries(this->countryQuantity, 0);
+	vector<Real> exportsProducts(this->productQuantity, 0);
+
+	for (int c = 0; c < this->countryQuantity; c++) {
+		for (int p = 0; p < this->productQuantity; p++) {
+			Real exported = this->exports[c][p];
+			exportsCountries[c] = exportsCountries[c] + exported;
+			exportsProducts[p] = exportsProducts[p] + exported;
+		}
+	}
+
+	Real totalExports = 0;
+	for (auto e : exportsCountries) {
+		totalExports = totalExports + e;
+	}
+
+	vector<vector<Real>> RCA(this->countryQuantity);
+	for (int c = 0; c < this->countryQuantity; c++) {
+		// TODO: sacar estos datos de la "realidad"
+		RCA[c] = vector<Real>(this->productQuantity);
+		for (int p = 0; p < this->productQuantity; p++) {
+			RCA[c][p] = (this->exports[c][p] / exportsCountries[c]) / (exportsProducts[p] / totalExports);
+		}
+	}
+	return &RCA;
+}
+
 
 /*******************************************************************
 * Function Name: initFunction
@@ -70,23 +111,50 @@ void calculoOfTheShit() {}
 * Remember you can use the msg object (mgs.port(), msg.value()) and you should set the next TA (you might use the holdIn method).
 ********************************************************************/
 Model &Market::externalFunction(const ExternalMessage &msg) {
-    auto demandedQuantity = Real::from_value(msg.value());
-	if (this->lastChange() < msg.time()) {
-		cout << "nuevo pedido" << endl;
-	}
-    for (int i = 0; i < this->productQuantity; i++) {
-        if (msg.port() == *this->productsIn[i]) {
-			this->productDemands[i] = demandedQuantity;
+	if (msg.port().name().rfind("supply", 0) == 0) {
+		// procesar lo que vino del pais
+		// podriamos mandar directamente la tupla
+		this->updateDemandsAfterCountry(msg);
+		if (this->demanded == this->productQuantity) {
+			// termino de asignar los recursos
+			this->updateEffectiveExports();
 		}
-    }
-	this->demands += 1;
-	if (this->demands == this->productQuantity) {
-		calculoOfTheShit();
-    	this->holdIn(AtomicState::active, VTime::Zero);
+		// comunicamos o nuevos pedidos o lo que se pudo hacer
+		this->holdIn(AtomicState::active, VTime::Zero);
 	} else {
-		this->passivate();
+		// procesar lo que vino del producto
+		auto demandedQuantity = Real::from_value(msg.value());
+		for (int i = 0; i < this->productQuantity; i++) {
+			if (msg.port() == *this->productsIn[i]) {
+				this->productDemands[i] = demandedQuantity;
+			}
+		}
+		this->demands += 1;
+		if (this->demands == this->productQuantity) {
+			this->determineDemandsForCountries();
+			this->holdIn(AtomicState::active, VTime::Zero);
+		} else {
+			this->passivate();
+		}
 	}
     return *this;
+}
+
+void Market::determineDemandsForCountries(){
+	random_shuffle(this->permutationIndeces.begin(), this->permutationIndeces.end());
+
+	// asignar las demandas a los paises con el criterio del documento
+}
+
+void Market::updateDemandsAfterCountry(const ExternalMessage &msg) {
+	// calcula la diferencia entre lo que se le pidio al pais y lo que va a producir
+	// asigna proporcionalmente esa diferenica a los paises que lo tuvieron asignados
+	// setea en demandedToCountries el valor a producir
+}
+
+void Market::updateEffectiveExports() {
+	// copia de demandedToCountries a exports
+	// calcula los nuevos parametros del ProductSpace
 }
 
 /*******************************************************************
@@ -95,7 +163,12 @@ Model &Market::externalFunction(const ExternalMessage &msg) {
 * The new state and TA should be set.
 ********************************************************************/
 Model &Market::internalFunction( const InternalMessage & ) {
-	this->demands = 0;
+	if (this->demands == this->productQuantity && this->demanded < this->productQuantity) {
+		this->demanded++;
+	} else if (this->demands == this->productQuantity && this->demanded == this->productQuantity) {
+		this->demanded = 0;
+		this->demands = 0;
+	}
 	this->passivate();
 	return *this;
 }
@@ -106,9 +179,16 @@ Model &Market::internalFunction( const InternalMessage & ) {
 * Output values can be send through output ports
 ********************************************************************/
 Model &Market::outputFunction( const CollectMessage &msg ) {
-	for (int i = 0; i < this->productQuantity; i++) {
-    	sendOutput(msg.time(), *this->productsOut[i], this->productDemands[i]);
-    }
+	if (this->demands == this->productQuantity && this->demanded < this->productQuantity) {
+		int country = this->permutationIndeces[this->demanded];
+		sendOutput(msg.time(), *this->countriesOut[country], this->productDemands[country]);
+
+	} else if (this->demands == this->productQuantity && this->demanded == this->productQuantity) {
+		for (int i = 0; i < this->productQuantity; i++) {
+    		sendOutput(msg.time(), *this->productsOut[i], this->productDemands[i]);
+    	}
+	}
+
 	return *this;
 }
 

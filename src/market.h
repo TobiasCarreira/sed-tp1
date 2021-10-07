@@ -28,14 +28,31 @@ protected:
 
 private:
     const int productQuantity;
+	const int countryQuantity = 1;
 	vector<Real> productDemands;
-    Real value;
-	int demands = 0;
+
+	vector<vector<Real>> exports;
+
 	vector<const Port*> productsIn;
 	vector<Port*> productsOut;
 
+	vector<const Port*> countriesIn;
+	vector<Port*> countriesOut;
+
+	int demands = 0;
+	int demanded = 0;
+
+	vector<vector<Real>> demandedToCountries;
+	vector<int> permutationIndeces;
+
     vector<const Port*> inputPorts(int productQuantity);
     vector<Port*> outputPorts(int productQuantity);
+
+
+	vector<vector<Real>> *getRCAMatrix();
+	void determineDemandsForCountries();
+	void updateEffectiveExports();
+	void updateDemandsAfterCountry(const ExternalMessage &msg);
 
 };	// class ConstGenerator
 
