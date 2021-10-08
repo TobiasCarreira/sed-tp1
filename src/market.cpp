@@ -164,17 +164,46 @@ Model &Market::externalFunction(const ExternalMessage &msg) {
     return *this;
 }
 
+#define PRODUCT_COUNTRY_FIDELITY Real(0.8)
+#define NEW_PRODUCT_BAG_SIZE  5
+
 void Market::determineDemandsForCountries(){
 	random_shuffle(this->permutationIndeces.begin(), this->permutationIndeces.end());
 
 	// asignar las demandas a los paises con el criterio del documento
 	this->demandedToCountries = vector<vector<Real>>(this->countryQuantity);
 	Real ratio = 1.0 / this->countryQuantity;
-	for (int c = 0; c < this->countryQuantity; c++) {
-		this->demandedToCountries[c] = vector<Real>(this->productQuantity);
-		for (int p = 0; p < this->productQuantity; p++) {
-			this->demandedToCountries[c][p] = ratio * this->productDemands[p];
+	for (int c = 0; c < this->countryQuantity; c++)
+		this->demandedToCountries[c] = vector<Real>(this->productQuantity, 0);
+
+	for (int p = 0; p < this->productQuantity; p++) {
+		// primero respetamos la fidelidad pidiendo el 80% de los bienes a los paises que ya los exportan (sosten de produccion)
+		Real total = 0;
+		vector<int> exporters, notExporters;
+		for (int c = 0; c < this->countryQuantity; c++) {
+			total = total + this->exports[c][p];
+			if (this->exports[c][p] > 0)
+				exporters.push_back(c);
+			else
+				notExporters.push_back(c);
 		}
+		for (int c : exporters)
+			this->demandedToCountries[c][p] = PRODUCT_COUNTRY_FIDELITY * (this->exports[c][p] / total) * this->productDemands[p];
+
+		this->productDemands[p] = this->productDemands[p] * (Real(1) - PRODUCT_COUNTRY_FIDELITY);
+
+		// el 10% de los bienes los asignamos equitativamente a aquellos que todavia no los exportan (nueva produccion)
+		random_shuffle(notExporters.begin(), notExporters.end());
+		const int bagSize = min(NEW_PRODUCT_BAG_SIZE, (int) notExporters.size());
+		for (int i = 0; i < bagSize; i++) {
+			const int c = notExporters[i];
+			this->demandedToCountries[c][p] = this->productDemands[p] * 0.5 * (1 / bagSize);
+		}
+		this->productDemands[p] = this->productDemands[p] * Real(0.5);
+
+		// el restante 10% se distribuye de manera equitativa en quienes si lo exportan (aumento de la produccion)
+		for (int c : exporters)
+			this->demandedToCountries[c][p] = this->demandedToCountries[c][p] + (this->productDemands[p] / exporters.size());
 	}
 }
 

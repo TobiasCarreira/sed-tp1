@@ -31,6 +31,8 @@ private:
 	Real initialVolume;
     Real growthRate;
 
+	Real lastVolume;
+
 };	// class ConstGenerator
 
 
