@@ -56,7 +56,7 @@ private:
 
 	void determineDemandsForCountries();
 	void updateEffectiveExports();
-	void updateDemandsAfterCountry(const ExternalMessage &msg);
+	void updateDemandsAfterCountry(const Tuple<Real> &);
 
 };	// class ConstGenerator
 

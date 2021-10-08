@@ -127,8 +127,6 @@ Model &Market::initFunction() {
 	return *this ;
 }
 
-void calculoOfTheShit() {}
-
 /*******************************************************************
 * Function Name: externalFunction
 * Description: This method executes when an external event is received.
@@ -137,8 +135,7 @@ void calculoOfTheShit() {}
 Model &Market::externalFunction(const ExternalMessage &msg) {
 	if (msg.port().name().rfind("supply_c", 0) == 0) {
 		// procesar lo que vino del pais
-		// podriamos mandar directamente la tupla
-		this->updateDemandsAfterCountry(msg);
+		this->updateDemandsAfterCountry(Tuple<Real>::from_value(msg.value()));
 		if (this->demandedToCountriesCount == this->countryQuantity) {
 			// termino de asignar los recursos
 			this->updateEffectiveExports();
@@ -167,7 +164,7 @@ Model &Market::externalFunction(const ExternalMessage &msg) {
 #define PRODUCT_COUNTRY_FIDELITY Real(0.8)
 #define NEW_PRODUCT_BAG_SIZE  5
 
-void Market::determineDemandsForCountries(){
+void Market::determineDemandsForCountries() {
 	random_shuffle(this->permutationIndeces.begin(), this->permutationIndeces.end());
 
 	// asignar las demandas a los paises con el criterio del documento
@@ -187,7 +184,7 @@ void Market::determineDemandsForCountries(){
 			else
 				notExporters.push_back(c);
 		}
-		for (int c : exporters)
+		for (const int c : exporters)
 			this->demandedToCountries[c][p] = PRODUCT_COUNTRY_FIDELITY * (this->exports[c][p] / total) * this->productDemands[p];
 
 		this->productDemands[p] = this->productDemands[p] * (Real(1) - PRODUCT_COUNTRY_FIDELITY);
@@ -202,22 +199,36 @@ void Market::determineDemandsForCountries(){
 		this->productDemands[p] = this->productDemands[p] * Real(0.5);
 
 		// el restante 10% se distribuye de manera equitativa en quienes si lo exportan (aumento de la produccion)
-		for (int c : exporters)
+		for (const int c : exporters)
 			this->demandedToCountries[c][p] = this->demandedToCountries[c][p] + (this->productDemands[p] / exporters.size());
 	}
 }
 
-void Market::updateDemandsAfterCountry(const ExternalMessage &msg) {
-	cout << "HERE " << endl;
+void Market::updateDemandsAfterCountry(const Tuple<Real> &supplied) {
 	// calcula la diferencia entre lo que se le pidio al pais y lo que va a producir
+	const int country = this->permutationIndeces[this->demandedToCountriesCount];
+	vector<Real> diff(this->demandedToCountries[country]);
+	for (int p = 0; p < supplied.size(); p++) {
+		// actualiza exports
+		this->exports[country][p] = supplied[p];
+		diff[p] = diff[p] - supplied[p];
+	}
 	// asigna proporcionalmente esa diferenica a los paises que lo tuvieron asignados
-	// setea en demandedToCountries el valor a producir
+	for (int p = 0; p < supplied.size(); p++) {
+		vector<int> potentialExporters;
+		for (int i = this->demandedToCountriesCount + 1; i < this->countryQuantity; i++) {
+			const int c = this->permutationIndeces[i];
+			if (this->demandedToCountries[c][p] > 0)
+				potentialExporters.push_back(c);
+		}
+
+		// divide sobre los exportadores
+		for (const int c : potentialExporters)
+			this->demandedToCountries[c][p] = this->demandedToCountries[c][p] + (diff[p] / potentialExporters.size());
+	}
 }
 
 void Market::updateEffectiveExports() {
-	cout << "FINISHED" << endl;
-
-	// copia de demandedToCountries a exports
 	// calcula los nuevos parametros del ProductSpace
 }
 
