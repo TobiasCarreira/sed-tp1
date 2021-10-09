@@ -39,6 +39,7 @@ Country::Country( const string &name )
     for (int i = 0; i < productQuantity; i++) {
         initialExports[i] = str2Real( simulator.getParameter( description(), "initialExports_p" + to_string(i) ) );
     }
+    this->productQuantity = productQuantity;
     this->lastYearExports = Tuple<Real>(&initialExports);
 }
 
@@ -65,8 +66,32 @@ Model &Country::externalFunction(const ExternalMessage &msg) {
 }
 
 void Country::updateExports( const Tuple<Real> & demand) {
-    // TODO: agregar estrategia con respecto a lo exportado el año pasado y los limites de crecimiento
-    this->lastYearExports = demand;
+    // Estrategia conservadora
+    // Calculo cuanto extra deberia invertir
+    Real extraInvestment = 0;
+    Real budget = 0;
+    // TODO: calcular la inversion requerida para producir extra
+    vector<Real> requiredInvestment(this->productQuantity, 1);
+    for (int i = 0; i < this->productQuantity; i++) {
+        // TODO: usar RCA en vez de this->lastYearExports[i] > 0?
+        if (this->lastYearExports[i] > 0 && demand[i] > this->lastYearExports[i]) {
+            extraInvestment = extraInvestment + (demand[i] - this->lastYearExports[i]) * requiredInvestment[i];
+        }
+    }
+    vector<Real> exports(this->productQuantity);
+    for (int i = 0; i < this->productQuantity; i++) {
+        if (this->lastYearExports[i] > 0 && demand[i] > this->lastYearExports[i]) {
+            if (extraInvestment > budget) {
+                // No alcanza el presupuesto para invertir lo que me ofreció el mercado
+                exports[i] = this->lastYearExports[i] + (demand[i] - this->lastYearExports[i]) * (budget / extraInvestment);
+            } else {
+                exports[i] = demand[i];
+            }
+        } else {
+            exports[i] = min(this->lastYearExports[i], demand[i]);
+        }
+    }
+    this->lastYearExports = Tuple<Real>(&exports);
 }
 /*******************************************************************
 * Function Name: internalFunction

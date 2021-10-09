@@ -29,6 +29,7 @@ private:
 	const Port &demand;
 	Port &supply;
     Tuple<Real> lastYearExports;
+    int productQuantity;
 
     void updateExports( const Tuple<Real> & );
 
