@@ -1,6 +1,6 @@
 /** include files **/
 #include "country.h"       // base header
-#include "message.h"       // class InternalMessage 
+#include "message.h"       // class InternalMessage
 #include "parsimu.h"      // class Simulator
 #include "strutil.h"       // str2Value( ... )
 #include "utils.h"
@@ -41,6 +41,7 @@ Country::Country( const string &name )
     }
     this->productQuantity = productQuantity;
     this->lastYearExports = Tuple<Real>(&initialExports);
+    this->budgetProportion = 0.01; // TODO: hacer configurable?
 }
 
 /*******************************************************************
@@ -65,11 +66,17 @@ Model &Country::externalFunction(const ExternalMessage &msg) {
     return *this;
 }
 
+Real Country::totalExports() {
+    Real total = 0;
+    for (int i = 0; i < this->productQuantity; i++) total = total + this->lastYearExports[i];
+    return total;
+}
+
 void Country::updateExports( const Tuple<Real> & demand) {
     // Estrategia conservadora
     // Calculo cuanto extra deberia invertir
     Real extraInvestment = 0;
-    Real budget = 0;
+    Real budget = this->budgetProportion * this->totalExports();
     // TODO: calcular la inversion requerida para producir extra
     vector<Real> requiredInvestment(this->productQuantity, 1);
     for (int i = 0; i < this->productQuantity; i++) {

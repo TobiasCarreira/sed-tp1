@@ -30,8 +30,10 @@ private:
 	Port &supply;
     Tuple<Real> lastYearExports;
     int productQuantity;
+    Real budgetProportion;
 
     void updateExports( const Tuple<Real> & );
+    Real totalExports();
 
 };	// class Country
 
