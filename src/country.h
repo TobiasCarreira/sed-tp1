@@ -33,6 +33,8 @@ private:
     Real budgetProportion;
 
     void updateExports( const Tuple<Real> & );
+    void conservativeStrategy( const Tuple<Real> & );
+    void egalitarianStrategy( const Tuple<Real> & );
     Real totalExports();
 
 };	// class Country

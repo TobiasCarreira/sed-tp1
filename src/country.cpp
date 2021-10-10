@@ -6,6 +6,8 @@
 #include "utils.h"
 #import "tuple_value.h"
 #include <iostream>
+#include <utility>
+#include <algorithm>
 
 using namespace std;
 
@@ -72,7 +74,50 @@ Real Country::totalExports() {
     return total;
 }
 
-void Country::updateExports( const Tuple<Real> & demand) {
+void Country::updateExports(const Tuple<Real> & demand) {
+    this->conservativeStrategy(demand);
+}
+
+void Country::egalitarianStrategy( const Tuple<Real> & demand) {
+    Real budget = this->budgetProportion * this->totalExports();
+    // TODO: calcular la inversion requerida para producir extra
+    vector<Real> requiredInvestment(this->productQuantity, 1);
+    // TODO: ver de donde conseguir los PGIs
+    vector<Real> pgi(this->productQuantity, 1);
+
+    vector<pair<double, int>> equalityPerInvestment(this->productQuantity);
+    for (int i = 0; i < this->productQuantity; i++) {
+        // Mayor PGI es mayor desigualdad, asi que igualdad = 1/pgi
+        // Luego, la igualdad por inversion es igualdad/inversion
+        equalityPerInvestment[i] = make_pair((Real::one / (pgi[i] * requiredInvestment[i])).value(), i);
+    }
+    // Ordeno los productos por cuan eficientes son para "aumentar la igualdad"
+    sort(equalityPerInvestment.begin(), equalityPerInvestment.end(), std::greater<pair<double, int>>());
+
+    vector<Real> exports(this->productQuantity);
+    for (int i = 0; i < this->productQuantity; i++) {
+        // Busco primero aumentar las exportaciones de los productos con menor pgi por inversion requerida
+        int product = equalityPerInvestment[i].second;
+        Real diff = demand[i] - this->lastYearExports[i];
+        if (budget > 0 && diff > 0) {
+            Real diffRequiredInvestment = diff * requiredInvestment[product];
+            if (diffRequiredInvestment < budget) {
+                // Si me alcanza el presupuesto, exporto el extra que me pidieron
+                exports[product] = demand[product];
+                budget = budget - diffRequiredInvestment;
+            } else {
+                // Sino, exporto lo que llego con el presupuesto
+                exports[product] = this->lastYearExports[product] + budget/requiredInvestment[product];
+                budget = 0;
+            }
+        } else {
+            exports[product] = min(this->lastYearExports[product], demand[product]);
+        }
+    }
+    this->lastYearExports = Tuple<Real>(&exports);
+}
+
+void Country::conservativeStrategy( const Tuple<Real> & demand) {
     // Estrategia conservadora
     // Calculo cuanto extra deberia invertir
     Real extraInvestment = 0;
