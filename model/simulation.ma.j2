@@ -1,40 +1,38 @@
 [top]
-components : market@Market {% for c in range(countries|count) %} c{{ c }}@Country {% endfor %} {% for p in range(products|count) %} p{{ p }}@Product {% endfor %}
-
-out : {% for p in range(products|count) %} supply_p{{ p }} demand_p{{ p }} {% endfor %} {% for c in range(countries|count) %} supply_c{{ c }} demand_c{{ c }} {% endfor %}
+components : market@Market
+{% for c in range(countries|count) %}
+components : c{{ c }}@Country{% endfor %}
+{% for p in range(products|count) %}
+components : p{{ p }}@Product{% endfor %}
 
 {% for p in range(products|count) %}
+out : supply_p{{ p }} demand_p{{ p }}{% endfor %}
+{% for c in range(countries|count) %}
+out : supply_c{{ c }} demand_c{{ c }}{% endfor %}
 
-link : supply_p{{ p }}@market supply@p{{ p }}
+{% for p in range(products|count) %}link : supply_p{{ p }}@market supply@p{{ p }}
 link : demand@p{{ p }} demand_p{{ p }}@market
-
 link : supply_p{{ p }}@market supply_p{{ p }}
-link : demand@p{{ p }} demand_p{{ p }}
-
-{% endfor %}
+link : demand@p{{ p }} demand_p{{ p }}{% endfor %}
 {% for c in range(countries|count) %}
 
 link : demand_c{{ c }}@market demand@c{{ c }}
 link : supply@c{{ c }} supply_c{{ c }}@market
-
 link : demand_c{{ c }}@market demand_c{{ c }}
-link : supply@c{{ c }} supply_c{{ c }}
-{% endfor %}
+link : supply@c{{ c }} supply_c{{ c }}{% endfor %}
+
 [market]
 productQuantity : {{ products | count }}
 countryQuantity : {{ countries | count }}
 {% for p in products %}
-
 [p{{ loop.index0 }}]
 initialVolume : {{ p.initialVolume }}
-growthRate : {{ p.b }}
+growthRate : {{ p.b }}{% endfor %}
 
-{% endfor %}
-{% for c  in countries %}
-
-[c{{ loop.index0 }}]
+{% for c  in countries %}[c{{ loop.index0 }}]
 productQuantity : {{ products | count }}
-{% for export in c.productExports %}
-initialExports_p{{ loop.index0 }} : {{ export }}
+initialGDP : {{ c.initialGDP }}
+iso3Code : {{ c.iso3 }}
+{% for export in c.productExports %}initialExports_p{{ loop.index0 }} : {{ export }}
 {% endfor %}
 {% endfor %}
