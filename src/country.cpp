@@ -82,14 +82,12 @@ void Country::egalitarianStrategy( const Tuple<Real> & demand) {
     Real budget = this->budgetProportion * this->totalExports();
     // TODO: calcular la inversion requerida para producir extra
     vector<Real> requiredInvestment(this->productQuantity, 1);
-    // TODO: ver de donde conseguir los PGIs
-    vector<Real> pgi(this->productQuantity, 1);
 
     vector<pair<double, int>> equalityPerInvestment(this->productQuantity);
     for (int i = 0; i < this->productQuantity; i++) {
         // Mayor PGI es mayor desigualdad, asi que igualdad = 1/pgi
         // Luego, la igualdad por inversion es igualdad/inversion
-        equalityPerInvestment[i] = make_pair((Real::one / (pgi[i] * requiredInvestment[i])).value(), i);
+        equalityPerInvestment[i] = make_pair((Real::one / (PGIs[i] * requiredInvestment[i])).value(), i);
     }
     // Ordeno los productos por cuan eficientes son para "aumentar la igualdad"
     sort(equalityPerInvestment.begin(), equalityPerInvestment.end(), std::greater<pair<double, int>>());
