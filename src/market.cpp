@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include "utils.h"
 using namespace std;
 
 vector<const Port*> Market::productDemandPorts(int productQuantity) {
@@ -88,6 +89,18 @@ Market::Market( const string &name )
 	}
 
 	for (int c = 0; c < this->countryQuantity; c++) permutationIndeces[c] = c;
+    this->updatePGIs();
+    this->updateAffinities();
+}
+
+void Market::updatePGIs() {
+    // TODO: hacer cuentita
+    PGIs = vector<Real>(this->productQuantity, 0.5);
+}
+
+void Market::updateAffinities() {
+    // TODO: hacer cuentita
+    productsAffinity = vector<vector<Real> >(this->productQuantity, vector<Real>(this->productQuantity, 0.5));
 }
 
 vector<vector<Real>>* Market::getRCAMatrix() {

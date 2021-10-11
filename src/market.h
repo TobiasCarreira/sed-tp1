@@ -57,6 +57,8 @@ private:
 	void determineDemandsForCountries();
 	void updateEffectiveExports();
 	void updateDemandsAfterCountry(const Tuple<Real> &);
+	void updatePGIs();
+	void updateAffinities();
 
 };	// class ConstGenerator
 
