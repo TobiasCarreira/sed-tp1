@@ -44,6 +44,8 @@ Country::Country( const string &name )
     this->productQuantity = productQuantity;
     this->lastYearExports = Tuple<Real>(&initialExports);
     this->budgetProportion = 0.01; // TODO: hacer configurable?
+    this->strategy = str2Int( simulator.getParameter( description(), "strategy" ) );
+    this->gdp = str2Real( simulator.getParameter( description(), "initialGDP" ) );
 }
 
 /*******************************************************************
@@ -75,13 +77,51 @@ Real Country::totalExports() {
 }
 
 void Country::updateExports(const Tuple<Real> & demand) {
-    this->conservativeStrategy(demand);
+    switch (this->strategy) {
+        case 1:
+            this->conservativeStrategy(demand);
+            break;
+        case 2:
+            this->egalitarianStrategy(demand);
+    }
+}
+
+vector<Real> Country::affinityWithProducts() {
+    // TODO: deberia hacerlo el mercado y dejarlo global?
+    vector<Real> affinity(this->productQuantity);
+    for (int p = 0; p < this->productQuantity; p++) {
+        // TODO: Cambiar por RCA > 1
+        if (this->lastYearExports[p] > 0) {
+            affinity[p] = 1.0;
+        } else {
+            // Si no exporto el producto, tomo la mejor afinidad con los productos que si exporto
+            affinity[p] = 0.0;
+            for (int p2 = 0; p2 < this->productQuantity; p2++) {
+                if (this->lastYearExports[p2] > 0)
+                    affinity[p] = max(affinity[p], productsAffinity[p][p2]);
+            }
+        }
+    }
+    return affinity;
+}
+
+vector<Real> Country::requiredInvestmentForProducts() {
+    vector<Real> affinities = affinityWithProducts();
+
+    vector<Real> requiredInvestment(this->productQuantity);
+    for (int p = 0; p < this->productQuantity; p++) {
+        requiredInvestment[p] = (Real::one - affinities[p]) + (Real::one - PGIs[p]);
+        MASSERTMSG( requiredInvestment[p] >= 0, string("La inversion requerida no puede ser negativa") );
+    }
+    return requiredInvestment;
+}
+
+Real Country::budget() {
+    return this->budgetProportion * this->gdp;
 }
 
 void Country::egalitarianStrategy( const Tuple<Real> & demand) {
-    Real budget = this->budgetProportion * this->totalExports();
-    // TODO: calcular la inversion requerida para producir extra
-    vector<Real> requiredInvestment(this->productQuantity, 1);
+    vector<Real> requiredInvestment = requiredInvestmentForProducts();
 
     vector<pair<double, int>> equalityPerInvestment(this->productQuantity);
     for (int i = 0; i < this->productQuantity; i++) {
@@ -93,25 +133,34 @@ void Country::egalitarianStrategy( const Tuple<Real> & demand) {
     sort(equalityPerInvestment.begin(), equalityPerInvestment.end(), std::greater<pair<double, int>>());
 
     vector<Real> exports(this->productQuantity);
+    Real remainingBudget = this->budget();
     for (int i = 0; i < this->productQuantity; i++) {
         // Busco primero aumentar las exportaciones de los productos con menor pgi por inversion requerida
         int product = equalityPerInvestment[i].second;
-        Real diff = demand[i] - this->lastYearExports[i];
-        if (budget > 0 && diff > 0) {
+        Real diff = demand[product] - this->lastYearExports[product];
+        if (remainingBudget > 0 && diff > 0) {
             Real diffRequiredInvestment = diff * requiredInvestment[product];
-            if (diffRequiredInvestment < budget) {
+            if (diffRequiredInvestment < remainingBudget) {
                 // Si me alcanza el presupuesto, exporto el extra que me pidieron
                 exports[product] = demand[product];
-                budget = budget - diffRequiredInvestment;
+                remainingBudget = remainingBudget - diffRequiredInvestment;
             } else {
                 // Sino, exporto lo que llego con el presupuesto
-                exports[product] = this->lastYearExports[product] + budget/requiredInvestment[product];
-                budget = 0;
+                exports[product] = this->lastYearExports[product] + remainingBudget/requiredInvestment[product];
+                MASSERTMSG( exports[product] <= demand[product],
+                            string("Export: ") + exports[product].asString() + ", demand: " +  demand[product].asString() + "\n" +
+                            "lastYear: " + this->lastYearExports[product].asString() + ", rem budget: " +  remainingBudget.asString() + "\n" +
+                            "diff: " + diff.asString() + ", req: " +  requiredInvestment[product].asString() + "\n" +
+                            "diffReq: " + diffRequiredInvestment.asString());
+                remainingBudget = 0;
             }
         } else {
             exports[product] = min(this->lastYearExports[product], demand[product]);
         }
+        MASSERTMSG( exports[product] >= 0, string("La exportacion no puede ser negativa") );
+        MASSERTMSG( exports[product] <= demand[product], string("La exportacion no puede ser mayor a lo demandado") );
     }
+    // TODO: update GDP
     this->lastYearExports = Tuple<Real>(&exports);
 }
 
@@ -119,10 +168,10 @@ void Country::conservativeStrategy( const Tuple<Real> & demand) {
     // Estrategia conservadora
     // Calculo cuanto extra deberia invertir
     Real extraInvestment = 0;
-    Real budget = this->budgetProportion * this->totalExports();
-    MASSERTMSG( budget >= 0, string("El presupuesto no puede ser negativo") );
-    // TODO: calcular la inversion requerida para producir extra
-    vector<Real> requiredInvestment(this->productQuantity, 1);
+    Real totalBudget = this->budget();
+    MASSERTMSG( totalBudget >= 0, string("El presupuesto no puede ser negativo") );
+
+    vector<Real> requiredInvestment = this->requiredInvestmentForProducts();
     for (int i = 0; i < this->productQuantity; i++) {
         MASSERTMSG( demand[i] >= 0, string("La demanda no puede ser negativa") );
         if (this->lastYearExports[i] > 0 && demand[i] > this->lastYearExports[i]) {
@@ -132,11 +181,11 @@ void Country::conservativeStrategy( const Tuple<Real> & demand) {
     vector<Real> exports(this->productQuantity);
     for (int i = 0; i < this->productQuantity; i++) {
         if (this->lastYearExports[i] > 0 && demand[i] > this->lastYearExports[i]) {
-            if (extraInvestment > budget) {
+            if (extraInvestment > totalBudget) {
                 MASSERTMSG( demand[i] - this->lastYearExports[i] > 0, string("El incremento anual no puede ser negativo") );
-                MASSERTMSG( budget / extraInvestment > 0, string("El porcentaje de inversion no puede ser negativo") );
+                MASSERTMSG( totalBudget / extraInvestment > 0, string("El porcentaje de inversion no puede ser negativo") );
                 // No alcanza el presupuesto para invertir lo que me ofreció el mercado
-                exports[i] = this->lastYearExports[i] + (demand[i] - this->lastYearExports[i]) * (budget / extraInvestment);
+                exports[i] = this->lastYearExports[i] + (demand[i] - this->lastYearExports[i]) * (totalBudget / extraInvestment);
             } else {
                 exports[i] = demand[i];
             }
@@ -146,6 +195,8 @@ void Country::conservativeStrategy( const Tuple<Real> & demand) {
         MASSERTMSG( exports[i] >= 0, string("La exportacion no puede ser negativa") );
         MASSERTMSG( exports[i] <= demand[i], string("La exportacion no puede ser mayor a lo demandado") );
     }
+
+    // TODO: update GDP
     this->lastYearExports = Tuple<Real>(&exports);
 }
 /*******************************************************************

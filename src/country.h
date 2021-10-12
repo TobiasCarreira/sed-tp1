@@ -31,11 +31,16 @@ private:
     Tuple<Real> lastYearExports;
     int productQuantity;
     Real budgetProportion;
+    int strategy;
+    Real gdp;
 
     void updateExports( const Tuple<Real> & );
     void conservativeStrategy( const Tuple<Real> & );
     void egalitarianStrategy( const Tuple<Real> & );
     Real totalExports();
+    vector<Real> requiredInvestmentForProducts();
+    vector<Real> affinityWithProducts();
+    Real budget();
 
 };	// class Country
 

@@ -36,6 +36,7 @@ growthRate : {{ p.b }}{% endfor %}
 productQuantity : {{ products | count }}
 initialGDP : {{ c.initialGDP }}
 iso3Code : {{ c.iso3 }}
+strategy : {{ c.strategy }}
 {% for export in c.productExports %}initialExports_p{{ loop.index0 }} : {{ export }}
 {% endfor %}
 {% endfor %}
