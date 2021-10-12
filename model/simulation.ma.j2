@@ -10,17 +10,19 @@ out : supply_p{{ p }} demand_p{{ p }}{% endfor %}
 {% for c in range(countries|count) %}
 out : supply_c{{ c }} demand_c{{ c }}{% endfor %}
 
-{% for p in range(products|count) %}link : supply_p{{ p }}@market supply@p{{ p }}
+{% for p in range(products|count) %}
+link : supply_p{{ p }}@market supply@p{{ p }}
 link : demand@p{{ p }} demand_p{{ p }}@market
 link : supply_p{{ p }}@market supply@p{{ p }}
 link : demand@p{{ p }} demand_p{{ p }}
-link : supply_p{{ p }}@market supply_p{{ p }}{% endfor %}
+{% endfor %}
 
 {% for c in range(countries|count) %}
 link : demand_c{{ c }}@market demand@c{{ c }}
 link : supply@c{{ c }} supply_c{{ c }}@market
 link : demand_c{{ c }}@market demand_c{{ c }}
-link : supply@c{{ c }} supply_c{{ c }}{% endfor %}
+link : supply@c{{ c }} supply_c{{ c }}
+{% endfor %}
 
 [market]
 productQuantity : {{ products | count }}
