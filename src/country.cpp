@@ -120,10 +120,11 @@ void Country::conservativeStrategy( const Tuple<Real> & demand) {
     // Calculo cuanto extra deberia invertir
     Real extraInvestment = 0;
     Real budget = this->budgetProportion * this->totalExports();
+    MASSERTMSG( budget >= 0, string("El presupuesto no puede ser negativo") );
     // TODO: calcular la inversion requerida para producir extra
     vector<Real> requiredInvestment(this->productQuantity, 1);
     for (int i = 0; i < this->productQuantity; i++) {
-        // TODO: usar RCA en vez de this->lastYearExports[i] > 0?
+        MASSERTMSG( demand[i] >= 0, string("La demanda no puede ser negativa") );
         if (this->lastYearExports[i] > 0 && demand[i] > this->lastYearExports[i]) {
             extraInvestment = extraInvestment + (demand[i] - this->lastYearExports[i]) * requiredInvestment[i];
         }
@@ -132,6 +133,8 @@ void Country::conservativeStrategy( const Tuple<Real> & demand) {
     for (int i = 0; i < this->productQuantity; i++) {
         if (this->lastYearExports[i] > 0 && demand[i] > this->lastYearExports[i]) {
             if (extraInvestment > budget) {
+                MASSERTMSG( demand[i] - this->lastYearExports[i] > 0, string("El incremento anual no puede ser negativo") );
+                MASSERTMSG( budget / extraInvestment > 0, string("El porcentaje de inversion no puede ser negativo") );
                 // No alcanza el presupuesto para invertir lo que me ofreció el mercado
                 exports[i] = this->lastYearExports[i] + (demand[i] - this->lastYearExports[i]) * (budget / extraInvestment);
             } else {
@@ -140,6 +143,8 @@ void Country::conservativeStrategy( const Tuple<Real> & demand) {
         } else {
             exports[i] = min(this->lastYearExports[i], demand[i]);
         }
+        MASSERTMSG( exports[i] >= 0, string("La exportacion no puede ser negativa") );
+        MASSERTMSG( exports[i] <= demand[i], string("La exportacion no puede ser mayor a lo demandado") );
     }
     this->lastYearExports = Tuple<Real>(&exports);
 }

@@ -34,6 +34,7 @@ Product::Product( const string &name )
     this->initialVolume = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "initialVolume" ) );
     this->growthRate = str2Real( ParallelMainSimulator::Instance().getParameter( description(), "growthRate" ) ) ;
 	this->lastVolume = this->initialVolume;
+    MASSERTMSG( initialVolume >= 0, string("Un producto no puede tener volumen inicial negativo.") );
 }
 
 /*******************************************************************
@@ -52,7 +53,9 @@ Model &Product::initFunction() {
 Model &Product::externalFunction(const ExternalMessage &msg) {
     if(msg.port() == this->supply) {
 		// cuidado con el overflow
-        this->lastVolume = Real::from_value(msg.value()) + this->growthRate;
+        MASSERTMSG( Real::from_value(msg.value()) >= 0, string("El mercado mandó una oferta negativa: ") );
+        this->lastVolume = max(Real::zero, Real::from_value(msg.value()) + this->growthRate);
+        MASSERTMSG( this->lastVolume >= 0, string("Paso algo raro con la actualizacion del volumen de un producto") );
         holdIn(AtomicState::active, CYCLE_TIME) ;
     }
 

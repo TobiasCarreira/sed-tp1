@@ -70,7 +70,7 @@ Market::Market( const string &name )
 
 	for (int i = 0; i < this->countryQuantity; i++) {
 		// TODO: sacar estos datos del PS 
-		this->exports[i] = vector<Real>(this->productQuantity);
+		this->exports[i] = vector<Real>(this->productQuantity, 1.0);
 	}
 
 	// TODO: sacar estos datos del PS 
@@ -107,6 +107,7 @@ Model &Market::externalFunction(const ExternalMessage &msg) {
 	} else {
 		// procesar lo que vino del producto
 		auto demandedQuantity = Real::from_value(msg.value());
+        MASSERTMSG( demandedQuantity >= 0, string("Un producto no puede pedir demanda negativa") );
 		for (int i = 0; i < this->productQuantity; i++) {
 			if (msg.port() == *this->productsIn[i]) {
 				this->productDemands[i] = demandedQuantity;
@@ -163,22 +164,29 @@ void Market::determineDemandsForCountries() {
 		// el restante 10% se distribuye de manera equitativa en quienes si lo exportan (aumento de la produccion)
 		for (const int c : exporters)
 			this->demandedToCountries[c][p] = this->demandedToCountries[c][p] + (this->productDemands[p] / exporters.size());
+        this->productDemands[p] = Real::zero;
 	}
 }
 
 void Market::updateDemandsAfterCountry(const Tuple<Real> &supplied) {
+    // Agrego lo exportado por este pais para luego avisarle al producto
+    for (int p = 0; p < supplied.size(); p++) {
+        MASSERTMSG( supplied[p] >= 0, string("Un pais no puede exportar negativo") );
+        this->productDemands[p] = this->productDemands[p] + supplied[p];
+    }
 	// calcula la diferencia entre lo que se le pidio al pais y lo que va a producir
-	const int country = this->permutationIndeces[this->demandedToCountriesCount];
+	const int country = this->permutationIndeces[this->demandedToCountriesCount-1];
 	vector<Real> diff(this->demandedToCountries[country]);
 	for (int p = 0; p < supplied.size(); p++) {
 		// actualiza exports
 		this->exports[country][p] = supplied[p];
+        MASSERTMSG( this->demandedToCountries[country][p] >= supplied[p], string("Un pais no puede exportar mas de lo que fue demandado") );
 		diff[p] = diff[p] - supplied[p];
 	}
 	// asigna proporcionalmente esa diferenica a los paises que lo tuvieron asignados
 	for (int p = 0; p < supplied.size(); p++) {
 		vector<int> potentialExporters;
-		for (int i = this->demandedToCountriesCount + 1; i < this->countryQuantity; i++) {
+		for (int i = this->demandedToCountriesCount; i < this->countryQuantity; i++) {
 			const int c = this->permutationIndeces[i];
 			if (this->demandedToCountries[c][p] > 0)
 				potentialExporters.push_back(c);

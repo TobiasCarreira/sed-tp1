@@ -12,7 +12,7 @@ products = [x for _, x in products]
 gdps_df = pd.read_csv("locations_gdp.csv")
 countries = []
 for _, row in gdps_df.iterrows():
-    countries.append((row["location_id"], {"initialGDP": row['1995'], "productExports": [1]*len(products), "iso3": row["location_code"]}))
+    countries.append((row["location_id"], {"initialGDP": row['1995'], "productExports": [10000]*len(products), "iso3": row["location_code"]}))
 
 countries.sort(key=lambda x: x[0])
 countries = [x for _, x in countries]
