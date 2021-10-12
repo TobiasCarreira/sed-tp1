@@ -65,72 +65,21 @@ Market::Market( const string &name )
 	  productDemands(productQuantity),
 	  exports(countryQuantity),
 	  permutationIndeces(countryQuantity) {
-	// add initialization code here. (reading parameters, initializing private vars, etc)
-	// Code templates for reading parameters:
-	// read string parameter:
-	// 		stringVar = ParallelMainSimulator::Instance().getParameter( description(), "paramName" );
-	// read int parameter:
-	// 		intVar = str2Int( ParallelMainSimulator::Instance().getParameter( description(), "initial" ) );
-	// read time parameter:
-	//		timeVar = string time( ParallelMainSimulator::Instance().getParameter( description(), "preparation" ) ) ;
-	// read distribution parameters:
-	//		dist = Distribution::create( ParallelMainSimulator::Instance().getParameter( description(), "distribution" ) );
-	//		MASSERT( dist ) ;
-	//		for ( register int i = 0; i < dist->varCount(); i++ )
-	//		{
-	//			string parameter( ParallelMainSimulator::Instance().getParameter( description(), dist->getVar( i ) ) ) ;
-	//			dist->setVar( i, str2Value( parameter ) ) ;
-	//		}
+
 	srand(time(0));
 
 	for (int i = 0; i < this->countryQuantity; i++) {
-		// TODO: sacar estos datos de la "realidad"
+		// TODO: sacar estos datos del PS 
 		this->exports[i] = vector<Real>(this->productQuantity);
 	}
 
-	for (int c = 0; c < this->countryQuantity; c++) permutationIndeces[c] = c;
-    this->updatePGIs();
-    this->updateAffinities();
-}
-
-void Market::updatePGIs() {
-    // TODO: hacer cuentita
+	// TODO: sacar estos datos del PS 
+    productsAffinity = vector<vector<Real> >(this->productQuantity);
+	for (int p = 0; p < this->productQuantity; p++) productsAffinity[p] = vector<Real>(this->productQuantity, 0.5);
     PGIs = vector<Real>(this->productQuantity, 0.5);
+
+	for (int c = 0; c < this->countryQuantity; c++) permutationIndeces[c] = c;
 }
-
-void Market::updateAffinities() {
-    // TODO: hacer cuentita
-    productsAffinity = vector<vector<Real> >(this->productQuantity, vector<Real>(this->productQuantity, 0.5));
-}
-
-vector<vector<Real>>* Market::getRCAMatrix() {
-	vector<Real> exportsCountries(this->countryQuantity, 0);
-	vector<Real> exportsProducts(this->productQuantity, 0);
-
-	for (int c = 0; c < this->countryQuantity; c++) {
-		for (int p = 0; p < this->productQuantity; p++) {
-			Real exported = this->exports[c][p];
-			exportsCountries[c] = exportsCountries[c] + exported;
-			exportsProducts[p] = exportsProducts[p] + exported;
-		}
-	}
-
-	Real totalExports = 0;
-	for (auto e : exportsCountries) {
-		totalExports = totalExports + e;
-	}
-
-	vector<vector<Real>> RCA(this->countryQuantity);
-	for (int c = 0; c < this->countryQuantity; c++) {
-		// TODO: sacar estos datos de la "realidad"
-		RCA[c] = vector<Real>(this->productQuantity);
-		for (int p = 0; p < this->productQuantity; p++) {
-			RCA[c][p] = (this->exports[c][p] / exportsCountries[c]) / (exportsProducts[p] / totalExports);
-		}
-	}
-	return &RCA;
-}
-
 
 /*******************************************************************
 * Function Name: initFunction
@@ -243,6 +192,48 @@ void Market::updateDemandsAfterCountry(const Tuple<Real> &supplied) {
 
 void Market::updateEffectiveExports() {
 	// calcula los nuevos parametros del ProductSpace
+	vector<double> exportsCountries(this->countryQuantity, 0);
+	vector<double> exportsProducts(this->productQuantity, 0);
+
+	for (int c = 0; c < this->countryQuantity; c++) {
+		for (int p = 0; p < this->productQuantity; p++) {
+			double exported = this->exports[c][p].value();
+			exportsCountries[c] += exported;
+			exportsProducts[p] += exported;
+		}
+	}
+
+	double totalExports = 0;
+	for (auto e : exportsCountries)
+		totalExports += e;
+
+	vector<vector<double>* > *RCA = new vector<vector<double>* >(this->countryQuantity);
+	for (int c = 0; c < this->countryQuantity; c++) {
+		// TODO: sacar estos datos de la "realidad"
+		(*RCA)[c] = new vector<double>(this->productQuantity);
+		for (int p = 0; p < this->productQuantity; p++) {
+			(*(*RCA)[c])[p] = (this->exports[c][p].value() / exportsCountries[c]) / (exportsProducts[p] / totalExports);
+		}
+	}
+
+	vector<double> productsPRCA(this->productQuantity);
+	for (int p = 0; p < this->productQuantity; p++) {
+		int count = 0;
+		for (int c = 0; c < this->countryQuantity; c++)
+			count += (*(*RCA)[c])[p] >= 1;
+		productsPRCA[p] = ((double)count) / this->countryQuantity;
+	}
+
+	for (int i = 0; i < this->productQuantity; i++) {
+		for (int j = 0; j < this->productQuantity; j++) {
+			const double preProximity = productsPRCA[i] / productsPRCA[j];
+			productsAffinity[i][j] = Real(min(preProximity, 1 / preProximity));
+		}
+	}
+
+	for (int c = 0; c < this->countryQuantity; c++)
+		delete (*RCA)[c];
+	delete RCA;
 }
 
 /*******************************************************************

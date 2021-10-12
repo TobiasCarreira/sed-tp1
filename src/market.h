@@ -52,8 +52,6 @@ private:
 	vector<Port*> countryDemandPorts(int countryQuantity);
 	vector<const Port*> countrySupplyPorts(int countryQuantity);
 
-	vector<vector<Real>> *getRCAMatrix();
-
 	void determineDemandsForCountries();
 	void updateEffectiveExports();
 	void updateDemandsAfterCountry(const Tuple<Real> &);
