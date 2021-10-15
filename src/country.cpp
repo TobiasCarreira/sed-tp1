@@ -45,7 +45,7 @@ Country::Country( const string &name )
     this->lastYearExports = Tuple<Real>(&initialExports);
     this->budgetProportion = 0.01; // TODO: hacer configurable?
     this->strategy = str2Int( simulator.getParameter( description(), "strategy" ) );
-    this->gdp = str2Real( simulator.getParameter( description(), "initialGDP" ) );
+    this->gdpOverExports = str2Real( simulator.getParameter( description(), "gdpOverExports" ) );
 }
 
 /*******************************************************************
@@ -116,8 +116,12 @@ vector<Real> Country::requiredInvestmentForProducts() {
     return requiredInvestment;
 }
 
+Real Country::gdp() {
+    return this->gdpOverExports * this->totalExports();
+}
+
 Real Country::budget() {
-    return this->budgetProportion * this->gdp;
+    return this->budgetProportion * this->gdp();
 }
 
 void Country::egalitarianStrategy( const Tuple<Real> & demand) {

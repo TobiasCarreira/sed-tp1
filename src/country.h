@@ -32,7 +32,7 @@ private:
     int productQuantity;
     Real budgetProportion;
     int strategy;
-    Real gdp;
+    Real gdpOverExports;
 
     void updateExports( const Tuple<Real> & );
     void conservativeStrategy( const Tuple<Real> & );
@@ -41,6 +41,7 @@ private:
     vector<Real> requiredInvestmentForProducts();
     vector<Real> affinityWithProducts();
     Real budget();
+    Real gdp();
 
 };	// class Country
 
