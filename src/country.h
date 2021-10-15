@@ -26,8 +26,9 @@ protected:
 	Model &outputFunction( const CollectMessage & );
 
 private:
-	const Port &demand;
-	Port &supply;
+    const Port &demand;
+    Port &supply;
+    Port &gdpPort;
     Tuple<Real> lastYearExports;
     int productQuantity;
     Real budgetProportion;

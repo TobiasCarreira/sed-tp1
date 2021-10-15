@@ -8,7 +8,7 @@ components : p{{ p }}@Product{% endfor %}
 {% for p in range(products|count) %}
 out : supply_p{{ p }} demand_p{{ p }}{% endfor %}
 {% for c in range(countries|count) %}
-out : supply_c{{ c }} demand_c{{ c }}{% endfor %}
+out : supply_c{{ c }} demand_c{{ c }} gdp_c{{ c }}{% endfor %}
 
 {% for p in range(products|count) %}
 link : supply_p{{ p }}@market supply@p{{ p }}
@@ -22,6 +22,7 @@ link : demand_c{{ c }}@market demand@c{{ c }}
 link : supply@c{{ c }} supply_c{{ c }}@market
 link : demand_c{{ c }}@market demand_c{{ c }}
 link : supply@c{{ c }} supply_c{{ c }}
+link : gdp@c{{ c }} gdp_c{{ c }}
 {% endfor %}
 
 [market]

@@ -18,7 +18,8 @@ using namespace std;
 Country::Country( const string &name )
 	: Atomic( name ),
       demand(addInputPort("demand")),
-	  supply(addOutputPort("supply")) {
+      supply(addOutputPort("supply")),
+      gdpPort(addOutputPort("gdp")) {
 	// add initialization code here. (reading parameters, initializing private vars, etc)
 	// Code templates for reading parameters:
 	// read string parameter:
@@ -220,6 +221,7 @@ Model &Country::internalFunction( const InternalMessage & ) {
 ********************************************************************/
 Model &Country::outputFunction( const CollectMessage &msg ) {
 	sendOutput(msg.time(), this->supply, this->lastYearExports);
+    sendOutput(msg.time(), this->gdpPort, this->gdp());
 	return *this;
 }
 
