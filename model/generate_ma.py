@@ -2,21 +2,20 @@ import csv
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-products = [{"initialVolume": 1000, "b": 1}, {"initialVolume": 2000, "b": 3}]
-with open("../datos_productos.csv") as f:
+with open("products.csv") as f:
     reader = csv.DictReader(f)
-    products = sorted([(r["producto_code"], {"initialVolume": r["initialVolume"], "b": r["b"]}) for r in reader], key=lambda x: x[0])
+    products = [{"initialVolume": r["initialVolume"], "b": r["b"], "label": r["label"]} for r in reader]
 
-products = [x for _, x in products]
-
-gdps_df = pd.read_csv("locations_gdp.csv")
+gdps_df = pd.read_csv("countries.csv")
 countries = []
 for _, row in gdps_df.iterrows():
-    countries.append((row["location_id"], {"gdpOverExports": 2, "productExports": [row['1995']/len(products)]*len(products), "iso3": row["location_code"], "strategy": 1}))
-
-countries.sort(key=lambda x: x[0])
-countries = [x for _, x in countries]
-
+    countries.append({
+        "initialGDP": row["1995"],
+        "gdpOverExports": row["gdp_over_exports"],
+        "productExports": [{"label": i, "export": row[p["label"]]} for i, p in enumerate(products)],
+        "iso3": row["location_code"],
+        "strategy": 1,
+    })
 
 env = Environment(
     loader=FileSystemLoader("."),
