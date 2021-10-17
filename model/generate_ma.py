@@ -7,15 +7,19 @@ with open("products.csv") as f:
     products = [{"initialVolume": r["initialVolume"], "b": r["b"], "label": r["label"]} for r in reader]
 
 gdps_df = pd.read_csv("countries.csv")
-countries = []
-for _, row in gdps_df.iterrows():
-    countries.append({
-        "initialGDP": row["1995"],
-        "gdpOverExports": row["gdp_over_exports"],
-        "productExports": [{"label": i, "export": row[p["label"]]} for i, p in enumerate(products)],
-        "iso3": row["location_code"],
-        "strategy": 1,
-    })
+
+
+def countries_data(strategy):
+    countries = []
+    for _, row in gdps_df.iterrows():
+        countries.append({
+            "initialGDP": row["1995"],
+            "gdpOverExports": row["gdp_over_exports"],
+            "productExports": [{"label": i, "export": row[p["label"]]} for i, p in enumerate(products)],
+            "iso3": row["location_code"],
+            "strategy": strategy,
+        })
+    return countries
 
 env = Environment(
     loader=FileSystemLoader("."),
@@ -23,5 +27,7 @@ env = Environment(
 )
 template = env.get_template("simulation.ma.j2")
 
-with open("simulation.ma", "w") as f:
-    f.write(template.render(products=products, countries=countries))
+with open("simulationConservative.ma", "w") as f:
+    f.write(template.render(products=products, countries=countries_data(1)))
+with open("simulationEgalitarian.ma", "w") as f:
+    f.write(template.render(products=products, countries=countries_data(2)))
