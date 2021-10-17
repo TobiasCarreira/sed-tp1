@@ -73,7 +73,8 @@ Model &Country::externalFunction(const ExternalMessage &msg) {
 
 Real Country::totalExports() {
     Real total = 0;
-    for (int i = 0; i < this->productQuantity; i++) total = total + this->lastYearExports[i];
+    for (int i = 0; i < this->productQuantity; i++) total = total + max(0.0, (double)this->lastYearExports[i].value());
+    MASSERTMSG(total >= 0, string("shit"));
     return total;
 }
 
@@ -118,7 +119,9 @@ vector<Real> Country::requiredInvestmentForProducts() {
 }
 
 Real Country::gdp() {
-    return this->gdpOverExports * this->totalExports();
+    auto x = this->gdpOverExports * this->totalExports();
+    MASSERTMSG(x >= 0, string("shit"));
+    return x;
 }
 
 Real Country::budget() {
