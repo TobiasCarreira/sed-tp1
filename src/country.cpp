@@ -111,7 +111,7 @@ vector<Real> Country::requiredInvestmentForProducts() {
 
     vector<Real> requiredInvestment(this->productQuantity);
     for (int p = 0; p < this->productQuantity; p++) {
-        requiredInvestment[p] = (Real::one - affinities[p]) + (Real::one - PGIs[p]);
+        requiredInvestment[p] = pow(10, (Real::one - affinities[p]).value()) / 2;
         MASSERTMSG( requiredInvestment[p] >= 0, string("La inversion requerida no puede ser negativa") );
     }
     return requiredInvestment;
